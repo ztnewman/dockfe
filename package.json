@@ -1,0 +1,13 @@
+{
+  "name": "dockfe",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A dockyard manifest for the container frontends running on this host.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

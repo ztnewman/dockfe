@@ -1,0 +1,425 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>dockfe</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:           #0a1020;
+    --bg-2:         #0d1426;
+    --panel:        #111a30;
+    --panel-hover:  #16213d;
+    --panel-icon:   #1a2544;
+    --border:       #1d2742;
+    --border-2:     #243154;
+    --ink:          #e6edf7;
+    --ink-dim:      #94a3b8;
+    --ink-faint:    #5c6a85;
+    --accent:       #60a5fa;
+    --accent-dim:   #3b6eb5;
+    --live:         #4ade80;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+
+  body {
+    background:
+      radial-gradient(ellipse 60% 30% at 50% 0%, rgba(96, 165, 250, 0.06), transparent 70%),
+      var(--bg);
+    color: var(--ink);
+    font-family: 'Geist', ui-sans-serif, system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    font-feature-settings: 'ss01', 'ss02';
+  }
+
+  .wrap {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 56px 32px 80px;
+  }
+
+  /* Masthead */
+  .mast {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 48px;
+    gap: 24px;
+  }
+  .mast h1 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+  }
+  .mast h1 .dim { color: var(--ink-faint); font-weight: 400; }
+  .mast p {
+    margin: 6px 0 0;
+    font-size: 13px;
+    color: var(--ink-dim);
+  }
+  .mast .meta {
+    text-align: right;
+    font-family: 'Geist Mono', ui-monospace, monospace;
+    font-size: 11px;
+    color: var(--ink-faint);
+    letter-spacing: 0.04em;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: flex-end;
+  }
+  .mast .meta .live-dot {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--ink-dim);
+  }
+  .mast .meta .live-dot::before {
+    content: '';
+    width: 6px; height: 6px;
+    background: var(--live);
+    border-radius: 50%;
+    box-shadow: 0 0 6px rgba(74, 222, 128, 0.6);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0.4; }
+  }
+
+  /* Section */
+  .section {
+    margin-top: 32px;
+  }
+  .section-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    margin-bottom: 14px;
+  }
+  .section-label .count {
+    font-family: 'Geist Mono', ui-monospace, monospace;
+    color: var(--ink-dim);
+    letter-spacing: 0.04em;
+  }
+  .section-label .line {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* Grid */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 10px;
+  }
+
+  /* Bookmark card */
+  .bm {
+    display: flex;
+    align-items: stretch;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    text-decoration: none;
+    color: inherit;
+    transition: background 160ms ease, border-color 160ms ease, transform 160ms ease;
+    opacity: 0;
+    animation: fade 0.4s ease forwards;
+  }
+  @keyframes fade {
+    from { opacity: 0; transform: translateY(2px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .bm:hover {
+    background: var(--panel-hover);
+    border-color: var(--border-2);
+  }
+  .bm:hover .bm-icon {
+    background: #20305a;
+  }
+  .bm:hover .bm-name { color: var(--accent); }
+
+  .bm-icon {
+    width: 56px;
+    flex-shrink: 0;
+    background: var(--panel-icon);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    transition: background 160ms ease;
+  }
+  .bm-icon img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    display: block;
+  }
+  .bm-icon .fallback {
+    font-family: 'Geist Mono', ui-monospace, monospace;
+    font-weight: 500;
+    font-size: 13px;
+    color: var(--accent);
+    letter-spacing: 0.04em;
+  }
+
+  .bm-body {
+    flex: 1;
+    min-width: 0;
+    padding: 10px 14px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+  }
+  .bm-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink);
+    letter-spacing: -0.005em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: color 160ms ease;
+  }
+  .bm-desc {
+    font-family: 'Geist Mono', ui-monospace, monospace;
+    font-size: 11px;
+    color: var(--ink-faint);
+    letter-spacing: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .bm-desc .sep { color: var(--ink-faint); opacity: 0.5; margin: 0 6px; }
+  .bm-desc .port { color: var(--ink-dim); }
+
+  /* Empty / error */
+  .panel {
+    border: 1px dashed var(--border-2);
+    border-radius: 8px;
+    padding: 48px 24px;
+    text-align: center;
+    color: var(--ink-dim);
+  }
+  .panel h3 {
+    margin: 0 0 6px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--ink);
+  }
+  .panel p {
+    margin: 0;
+    font-size: 13px;
+    color: var(--ink-dim);
+  }
+  .panel code {
+    display: inline-block;
+    margin-top: 10px;
+    padding: 4px 10px;
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-family: 'Geist Mono', ui-monospace, monospace;
+    font-size: 11px;
+    color: var(--ink-dim);
+  }
+
+  @media (max-width: 640px) {
+    .wrap { padding: 32px 20px 56px; }
+    .mast { flex-direction: column; align-items: flex-start; }
+    .mast .meta { text-align: left; align-items: flex-start; }
+    .grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+  <main class="wrap">
+    <header class="mast">
+      <div>
+        <h1>dockfe <span class="dim">·</span> <span class="dim" id="hostname">localhost</span></h1>
+        <p>Running container frontends on this host.</p>
+      </div>
+      <div class="meta">
+        <span class="live-dot" id="meta-count">— vessels</span>
+        <span id="meta-synced">synced —</span>
+      </div>
+    </header>
+
+    <section class="section">
+      <div class="section-label">
+        <span>Bookmarks</span>
+        <span class="line"></span>
+        <span class="count" id="section-count">—</span>
+      </div>
+      <div id="content"></div>
+    </section>
+  </main>
+
+  <script>
+    const POLL_MS = 5000;
+    const ICON_BASES = [
+      'https://cdn.jsdelivr.net/gh/selfhst/icons/png',
+      'https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png',
+    ];
+
+    const $ = (id) => document.getElementById(id);
+    const content = $('content');
+    let lastSynced = null;
+
+    const host = () => window.location.hostname || 'localhost';
+    const pad = (n, w = 2) => String(n).padStart(w, '0');
+    const fmtTime = (d) => `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+
+    function pickPrimaryPort(ports) {
+      const prefs = [80, 8080, 3000, 5173, 4173, 8000, 8888, 443, 8443];
+      for (const p of prefs) {
+        const hit = ports.find(x => x.host === p);
+        if (hit) return hit;
+      }
+      return ports[0];
+    }
+
+    function urlFor(port) {
+      const scheme = (port.host === 443 || port.host === 8443) ? 'https' : 'http';
+      return `${scheme}://${host()}:${port.host}`;
+    }
+
+    function initialsFor(name) {
+      const letters = name.replace(/[^a-z0-9]/gi, '');
+      return (letters.slice(0, 2) || '··').toUpperCase();
+    }
+
+    function iconElement(slug, name) {
+      const wrap = document.createElement('div');
+      wrap.className = 'bm-icon';
+      const img = document.createElement('img');
+      img.alt = '';
+      img.referrerPolicy = 'no-referrer';
+      let idx = 0;
+      img.src = `${ICON_BASES[idx]}/${slug}.png`;
+      img.onerror = () => {
+        idx += 1;
+        if (idx < ICON_BASES.length) {
+          img.src = `${ICON_BASES[idx]}/${slug}.png`;
+        } else {
+          wrap.removeChild(img);
+          const fb = document.createElement('span');
+          fb.className = 'fallback';
+          fb.textContent = initialsFor(name);
+          wrap.appendChild(fb);
+        }
+      };
+      wrap.appendChild(img);
+      return wrap;
+    }
+
+    function shortImage(image) {
+      const noDigest = image.split('@')[0];
+      const tail = noDigest.split('/').pop();
+      return tail;
+    }
+
+    function renderBookmark(c, i) {
+      const primary = pickPrimaryPort(c.ports);
+      const a = document.createElement('a');
+      a.className = 'bm';
+      a.href = urlFor(primary);
+      a.target = '_blank';
+      a.rel = 'noopener';
+      a.style.animationDelay = `${Math.min(i, 20) * 20}ms`;
+
+      a.appendChild(iconElement(c.slug, c.name));
+
+      const body = document.createElement('div');
+      body.className = 'bm-body';
+
+      const name = document.createElement('div');
+      name.className = 'bm-name';
+      name.textContent = c.name;
+
+      const desc = document.createElement('div');
+      desc.className = 'bm-desc';
+      const portsLabel = c.ports.map(p => `:${p.host}`).join(' ');
+      desc.innerHTML = `${shortImage(c.image)}<span class="sep">·</span><span class="port">${portsLabel}</span>`;
+
+      body.append(name, desc);
+      a.appendChild(body);
+      return a;
+    }
+
+    function renderEmpty() {
+      const div = document.createElement('div');
+      div.className = 'panel';
+      div.innerHTML = `<h3>No containers with exposed ports</h3><p>Start a container with a published port and it'll appear here.</p>`;
+      return div;
+    }
+
+    function renderError(msg) {
+      const div = document.createElement('div');
+      div.className = 'panel';
+      div.innerHTML = `<h3>Docker daemon unreachable</h3><p>Could not query running containers.</p><code></code>`;
+      div.querySelector('code').textContent = msg;
+      return div;
+    }
+
+    async function refresh() {
+      try {
+        const r = await fetch('/api/containers', { cache: 'no-store' });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+
+        const containers = data.containers || [];
+        lastSynced = new Date(data.syncedAt);
+
+        $('meta-count').textContent = `${containers.length} ${containers.length === 1 ? 'vessel' : 'vessels'}`;
+        $('section-count').textContent = pad(containers.length, 2);
+
+        content.innerHTML = '';
+        if (containers.length === 0) {
+          content.appendChild(renderEmpty());
+        } else {
+          const grid = document.createElement('div');
+          grid.className = 'grid';
+          containers.forEach((c, i) => grid.appendChild(renderBookmark(c, i)));
+          content.appendChild(grid);
+        }
+      } catch (err) {
+        content.innerHTML = '';
+        content.appendChild(renderError(err.message || String(err)));
+      }
+    }
+
+    function tick() {
+      $('hostname').textContent = host();
+      if (lastSynced) {
+        const ago = Math.max(0, Math.floor((new Date() - lastSynced) / 1000));
+        $('meta-synced').textContent = `synced ${ago}s ago`;
+      }
+    }
+
+    refresh();
+    setInterval(refresh, POLL_MS);
+    setInterval(tick, 1000);
+    tick();
+  </script>
+</body>
+</html>
