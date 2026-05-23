@@ -41,7 +41,7 @@
   }
 
   .wrap {
-    max-width: 1200px;
+    max-width: 1280px;
     margin: 0 auto;
     padding: 56px 32px 80px;
   }
@@ -51,7 +51,7 @@
     display: flex;
     justify-content: space-between;
     align-items: flex-end;
-    margin-bottom: 48px;
+    margin-bottom: 32px;
     gap: 24px;
   }
   .mast h1 {
@@ -97,10 +97,28 @@
     50%      { opacity: 0.4; }
   }
 
+  /* Search */
+  .search {
+    width: 100%;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    color: var(--ink);
+    font-family: inherit;
+    font-size: 14px;
+    margin-bottom: 28px;
+    outline: none;
+    transition: border-color 160ms ease;
+  }
+  .search:focus { border-color: var(--accent-dim); }
+  .search::placeholder { color: var(--ink-faint); }
+
   /* Section */
   .section {
     margin-top: 32px;
   }
+  .section:first-of-type { margin-top: 0; }
   .section-label {
     display: flex;
     align-items: center;
@@ -112,9 +130,10 @@
     letter-spacing: 0.14em;
     margin-bottom: 14px;
   }
+  .section-label .name { color: var(--ink-dim); }
   .section-label .count {
     font-family: 'Geist Mono', ui-monospace, monospace;
-    color: var(--ink-dim);
+    color: var(--ink-faint);
     letter-spacing: 0.04em;
   }
   .section-label .line {
@@ -140,21 +159,13 @@
     overflow: hidden;
     text-decoration: none;
     color: inherit;
-    transition: background 160ms ease, border-color 160ms ease, transform 160ms ease;
-    opacity: 0;
-    animation: fade 0.4s ease forwards;
-  }
-  @keyframes fade {
-    from { opacity: 0; transform: translateY(2px); }
-    to   { opacity: 1; transform: translateY(0); }
+    transition: background 160ms ease, border-color 160ms ease;
   }
   .bm:hover {
     background: var(--panel-hover);
     border-color: var(--border-2);
   }
-  .bm:hover .bm-icon {
-    background: #20305a;
-  }
+  .bm:hover .bm-icon { background: #20305a; }
   .bm:hover .bm-name { color: var(--accent); }
 
   .bm-icon {
@@ -204,13 +215,25 @@
     font-family: 'Geist Mono', ui-monospace, monospace;
     font-size: 11px;
     color: var(--ink-faint);
-    letter-spacing: 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  .bm-desc .sep { color: var(--ink-faint); opacity: 0.5; margin: 0 6px; }
-  .bm-desc .port { color: var(--ink-dim); }
+  .bm-desc .url { color: var(--ink-dim); }
+  .bm-desc .src {
+    display: inline-block;
+    padding: 0 5px;
+    margin-right: 6px;
+    border-radius: 3px;
+    background: rgba(96, 165, 250, 0.12);
+    color: var(--accent);
+    font-size: 9px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-weight: 500;
+    vertical-align: 1px;
+  }
+  .bm-desc .src.port { background: rgba(255,255,255,0.04); color: var(--ink-faint); }
 
   /* Empty / error */
   .panel {
@@ -264,14 +287,9 @@
       </div>
     </header>
 
-    <section class="section">
-      <div class="section-label">
-        <span>Bookmarks</span>
-        <span class="line"></span>
-        <span class="count" id="section-count">—</span>
-      </div>
-      <div id="content"></div>
-    </section>
+    <input type="search" class="search" id="search" placeholder="Filter by name, image, project, hostname, or :port…" autocomplete="off" spellcheck="false">
+
+    <div id="content"></div>
   </main>
 
   <script>
@@ -283,28 +301,25 @@
 
     const $ = (id) => document.getElementById(id);
     const content = $('content');
+    const searchInput = $('search');
     let lastSynced = null;
+    let allContainers = [];
+    let filter = '';
 
     const host = () => window.location.hostname || 'localhost';
     const pad = (n, w = 2) => String(n).padStart(w, '0');
-    const fmtTime = (d) => `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 
-    function pickPrimaryPort(ports) {
-      const prefs = [80, 8080, 3000, 5173, 4173, 8000, 8888, 443, 8443];
-      for (const p of prefs) {
-        const hit = ports.find(x => x.host === p);
-        if (hit) return hit;
+    function endpointUrl(e) {
+      if (e.url) return e.url;
+      if (e.port) {
+        const scheme = (e.port.host === 443 || e.port.host === 8443) ? 'https' : 'http';
+        return `${scheme}://${host()}:${e.port.host}`;
       }
-      return ports[0];
-    }
-
-    function urlFor(port) {
-      const scheme = (port.host === 443 || port.host === 8443) ? 'https' : 'http';
-      return `${scheme}://${host()}:${port.host}`;
+      return '#';
     }
 
     function initialsFor(name) {
-      const letters = name.replace(/[^a-z0-9]/gi, '');
+      const letters = (name || '').replace(/[^a-z0-9]/gi, '');
       return (letters.slice(0, 2) || '··').toUpperCase();
     }
 
@@ -314,12 +329,12 @@
       const img = document.createElement('img');
       img.alt = '';
       img.referrerPolicy = 'no-referrer';
+      img.loading = 'lazy';
       let idx = 0;
-      img.src = `${ICON_BASES[idx]}/${slug}.png`;
-      img.onerror = () => {
-        idx += 1;
+      const tryNext = () => {
         if (idx < ICON_BASES.length) {
           img.src = `${ICON_BASES[idx]}/${slug}.png`;
+          idx += 1;
         } else {
           wrap.removeChild(img);
           const fb = document.createElement('span');
@@ -328,49 +343,120 @@
           wrap.appendChild(fb);
         }
       };
+      img.onerror = tryNext;
+      tryNext();
       wrap.appendChild(img);
       return wrap;
     }
 
     function shortImage(image) {
-      const noDigest = image.split('@')[0];
-      const tail = noDigest.split('/').pop();
-      return tail;
+      return (image || '').split('@')[0].split('/').pop();
     }
 
-    function renderBookmark(c, i) {
-      const primary = pickPrimaryPort(c.ports);
+    function displayName(c) {
+      return c.service || c.name;
+    }
+
+    function searchableText(c) {
+      const parts = [c.name, c.service, c.project, c.image, c.id];
+      for (const e of c.endpoints) {
+        parts.push(e.label || '');
+        parts.push(e.source || '');
+        if (e.url) parts.push(e.url);
+        if (e.port) parts.push(`:${e.port.host}`);
+      }
+      return parts.join(' ').toLowerCase();
+    }
+
+    function renderBookmark(c) {
+      const primary = c.endpoints[0];
       const a = document.createElement('a');
       a.className = 'bm';
-      a.href = urlFor(primary);
+      a.href = endpointUrl(primary);
       a.target = '_blank';
       a.rel = 'noopener';
-      a.style.animationDelay = `${Math.min(i, 20) * 20}ms`;
 
-      a.appendChild(iconElement(c.slug, c.name));
+      a.appendChild(iconElement(c.slug, displayName(c)));
 
       const body = document.createElement('div');
       body.className = 'bm-body';
 
       const name = document.createElement('div');
       name.className = 'bm-name';
-      name.textContent = c.name;
+      name.textContent = displayName(c);
 
       const desc = document.createElement('div');
       desc.className = 'bm-desc';
-      const portsLabel = c.ports.map(p => `:${p.host}`).join(' ');
-      desc.innerHTML = `${shortImage(c.image)}<span class="sep">·</span><span class="port">${portsLabel}</span>`;
+      const src = document.createElement('span');
+      const sourceKey = primary.source || 'port';
+      src.className = 'src' + (sourceKey === 'port' ? ' port' : '');
+      src.textContent = sourceKey === 'nginx-proxy' ? 'nginx' : sourceKey;
+      const url = document.createElement('span');
+      url.className = 'url';
+      const labels = c.endpoints.slice(0, 3).map(e => e.label).join(' ');
+      const extra = c.endpoints.length > 3 ? ` +${c.endpoints.length - 3}` : '';
+      url.textContent = `${labels}${extra}`;
+      desc.append(src, url);
 
       body.append(name, desc);
       a.appendChild(body);
       return a;
     }
 
-    function renderEmpty() {
-      const div = document.createElement('div');
-      div.className = 'panel';
-      div.innerHTML = `<h3>No containers with exposed ports</h3><p>Start a container with a published port and it'll appear here.</p>`;
-      return div;
+    function groupByProject(containers) {
+      const map = new Map();
+      for (const c of containers) {
+        const key = c.project || '(no project)';
+        if (!map.has(key)) map.set(key, []);
+        map.get(key).push(c);
+      }
+      return [...map.entries()].sort((a, b) => {
+        if (a[0] === '(no project)') return 1;
+        if (b[0] === '(no project)') return -1;
+        return a[0].localeCompare(b[0]);
+      });
+    }
+
+    function applyFilter() {
+      const q = filter.trim().toLowerCase();
+      const filtered = q
+        ? allContainers.filter(c => searchableText(c).includes(q))
+        : allContainers;
+
+      content.innerHTML = '';
+
+      if (allContainers.length === 0) {
+        const div = document.createElement('div');
+        div.className = 'panel';
+        div.innerHTML = `<h3>No containers with reachable endpoints</h3><p>Start a container with a published port or proxy labels and it'll appear here.</p>`;
+        content.appendChild(div);
+        return;
+      }
+
+      if (filtered.length === 0) {
+        const div = document.createElement('div');
+        div.className = 'panel';
+        div.innerHTML = `<h3>No matches</h3><p>Nothing matches the current filter.</p>`;
+        content.appendChild(div);
+        return;
+      }
+
+      const groups = groupByProject(filtered);
+      for (const [project, items] of groups) {
+        const section = document.createElement('section');
+        section.className = 'section';
+        const label = document.createElement('div');
+        label.className = 'section-label';
+        label.innerHTML = `<span class="name"></span><span class="line"></span><span class="count"></span>`;
+        label.querySelector('.name').textContent = project;
+        label.querySelector('.count').textContent = pad(items.length, 2);
+        section.appendChild(label);
+        const grid = document.createElement('div');
+        grid.className = 'grid';
+        items.forEach(c => grid.appendChild(renderBookmark(c)));
+        section.appendChild(grid);
+        content.appendChild(section);
+      }
     }
 
     function renderError(msg) {
@@ -378,7 +464,8 @@
       div.className = 'panel';
       div.innerHTML = `<h3>Docker daemon unreachable</h3><p>Could not query running containers.</p><code></code>`;
       div.querySelector('code').textContent = msg;
-      return div;
+      content.innerHTML = '';
+      content.appendChild(div);
     }
 
     async function refresh() {
@@ -386,25 +473,12 @@
         const r = await fetch('/api/containers', { cache: 'no-store' });
         const data = await r.json();
         if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
-
-        const containers = data.containers || [];
+        allContainers = data.containers || [];
         lastSynced = new Date(data.syncedAt);
-
-        $('meta-count').textContent = `${containers.length} ${containers.length === 1 ? 'vessel' : 'vessels'}`;
-        $('section-count').textContent = pad(containers.length, 2);
-
-        content.innerHTML = '';
-        if (containers.length === 0) {
-          content.appendChild(renderEmpty());
-        } else {
-          const grid = document.createElement('div');
-          grid.className = 'grid';
-          containers.forEach((c, i) => grid.appendChild(renderBookmark(c, i)));
-          content.appendChild(grid);
-        }
+        $('meta-count').textContent = `${allContainers.length} ${allContainers.length === 1 ? 'vessel' : 'vessels'}`;
+        applyFilter();
       } catch (err) {
-        content.innerHTML = '';
-        content.appendChild(renderError(err.message || String(err)));
+        renderError(err.message || String(err));
       }
     }
 
@@ -415,6 +489,11 @@
         $('meta-synced').textContent = `synced ${ago}s ago`;
       }
     }
+
+    searchInput.addEventListener('input', (e) => {
+      filter = e.target.value;
+      applyFilter();
+    });
 
     refresh();
     setInterval(refresh, POLL_MS);
