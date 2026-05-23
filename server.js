@@ -101,6 +101,40 @@ function deriveSlug(image) {
   return s;
 }
 
+const SUFFIX_PATTERN = /[-_](server|ce|ee|app|web|ui|api|frontend|backend|core|service)$/;
+
+function slugVariants(slug) {
+  const out = [];
+  if (!slug) return out;
+  let s = slug;
+  out.push(s);
+  while (true) {
+    const next = s.replace(SUFFIX_PATTERN, '');
+    if (next === s || next.length < 3) break;
+    out.push(next);
+    s = next;
+  }
+  return out;
+}
+
+function slugCandidates(image, composeService, composeProject) {
+  const valid = /^[a-z0-9][a-z0-9-]*$/;
+  const seen = new Set();
+  const out = [];
+  const push = (s) => {
+    if (!s) return;
+    s = s.toLowerCase();
+    if (!valid.test(s) || seen.has(s)) return;
+    seen.add(s);
+    out.push(s);
+  };
+
+  for (const v of slugVariants(deriveSlug(image))) push(v);
+  if (composeService) for (const v of slugVariants(composeService.toLowerCase())) push(v);
+  if (composeProject) push(composeProject);
+  return out;
+}
+
 function dedupEndpoints(endpoints) {
   const seen = new Set();
   return endpoints.filter(e => {
@@ -137,7 +171,7 @@ function shapeContainer(inspect) {
     service: composeService,
     project: composeProject,
     image,
-    slug: deriveSlug(image),
+    slugs: slugCandidates(image, composeService, composeProject),
     iconOverride: labels['dockfe.icon'] || null,
     status: (inspect.State && inspect.State.Status) || '',
     endpoints,

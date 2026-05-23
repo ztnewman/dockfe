@@ -29,7 +29,14 @@ A container with `traefik.enable=false` is skipped. Containers with no matching 
 
 Compose service and project labels (`com.docker.compose.service`, `com.docker.compose.project`) are used to label and group cards.
 
-Icons are pulled from [selfh.st/icons](https://github.com/selfhst/icons) and fall back to [dashboard-icons](https://github.com/walkxcode/dashboard-icons), then to the first two letters of the service name. The slug is derived from the container's image name (`ghcr.io/foo/homebox:latest` → `homebox`).
+Icons are pulled from [selfh.st/icons](https://github.com/selfhst/icons) and fall back to [dashboard-icons](https://github.com/walkxcode/dashboard-icons), then to the first two letters of the service name.
+
+For each container, dockfe generates a list of candidate slugs and tries each one against both catalogs in order:
+
+1. The image-derived slug — `ghcr.io/immich-app/immich-server:release` → `immich-server`.
+2. The slug with common suffixes stripped — `immich-server` → `immich`, `portainer-ce` → `portainer`. Stripped suffixes: `-server`, `-ce`, `-ee`, `-app`, `-web`, `-ui`, `-api`, `-frontend`, `-backend`, `-core`, `-service`.
+3. The compose service name (`com.docker.compose.service`) and the same suffix-stripped variants of it.
+4. The compose project name (`com.docker.compose.project`).
 
 To override the icon on a per-container basis, set the `dockfe.icon` label:
 

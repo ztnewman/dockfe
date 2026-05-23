@@ -323,7 +323,7 @@
       return (letters.slice(0, 2) || '··').toUpperCase();
     }
 
-    function iconElement(slug, name, override) {
+    function iconElement(slugs, name, override) {
       const wrap = document.createElement('div');
       wrap.className = 'bm-icon';
       const img = document.createElement('img');
@@ -331,12 +331,20 @@
       img.referrerPolicy = 'no-referrer';
       img.loading = 'lazy';
 
-      const isDirectUrl = override && /^(https?:|data:)/i.test(override);
-      const effectiveSlug = (override && !isDirectUrl) ? override : slug;
-
       const sources = [];
-      if (isDirectUrl) sources.push(override);
-      for (const base of ICON_BASES) sources.push(`${base}/${effectiveSlug}.png`);
+      let candidateSlugs = slugs || [];
+      if (override) {
+        if (/^(https?:|data:)/i.test(override)) {
+          sources.push(override);
+        } else {
+          candidateSlugs = [override, ...candidateSlugs];
+        }
+      }
+      for (const slug of candidateSlugs) {
+        for (const base of ICON_BASES) {
+          sources.push(`${base}/${slug}.png`);
+        }
+      }
 
       let idx = 0;
       const tryNext = () => {
@@ -384,7 +392,7 @@
       a.target = '_blank';
       a.rel = 'noopener';
 
-      a.appendChild(iconElement(c.slug, displayName(c), c.iconOverride));
+      a.appendChild(iconElement(c.slugs, displayName(c), c.iconOverride));
 
       const body = document.createElement('div');
       body.className = 'bm-body';
