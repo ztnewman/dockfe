@@ -323,17 +323,25 @@
       return (letters.slice(0, 2) || '··').toUpperCase();
     }
 
-    function iconElement(slug, name) {
+    function iconElement(slug, name, override) {
       const wrap = document.createElement('div');
       wrap.className = 'bm-icon';
       const img = document.createElement('img');
       img.alt = '';
       img.referrerPolicy = 'no-referrer';
       img.loading = 'lazy';
+
+      const isDirectUrl = override && /^(https?:|data:)/i.test(override);
+      const effectiveSlug = (override && !isDirectUrl) ? override : slug;
+
+      const sources = [];
+      if (isDirectUrl) sources.push(override);
+      for (const base of ICON_BASES) sources.push(`${base}/${effectiveSlug}.png`);
+
       let idx = 0;
       const tryNext = () => {
-        if (idx < ICON_BASES.length) {
-          img.src = `${ICON_BASES[idx]}/${slug}.png`;
+        if (idx < sources.length) {
+          img.src = sources[idx];
           idx += 1;
         } else {
           wrap.removeChild(img);
@@ -376,7 +384,7 @@
       a.target = '_blank';
       a.rel = 'noopener';
 
-      a.appendChild(iconElement(c.slug, displayName(c)));
+      a.appendChild(iconElement(c.slug, displayName(c), c.iconOverride));
 
       const body = document.createElement('div');
       body.className = 'bm-body';

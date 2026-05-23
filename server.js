@@ -138,6 +138,7 @@ function shapeContainer(inspect) {
     project: composeProject,
     image,
     slug: deriveSlug(image),
+    iconOverride: labels['dockfe.icon'] || null,
     status: (inspect.State && inspect.State.Status) || '',
     endpoints,
   };

@@ -29,7 +29,22 @@ A container with `traefik.enable=false` is skipped. Containers with no matching 
 
 Compose service and project labels (`com.docker.compose.service`, `com.docker.compose.project`) are used to label and group cards.
 
-Icons are pulled from [selfh.st/icons](https://github.com/selfhst/icons) and fall back to [dashboard-icons](https://github.com/walkxcode/dashboard-icons), then to the first two letters of the service name.
+Icons are pulled from [selfh.st/icons](https://github.com/selfhst/icons) and fall back to [dashboard-icons](https://github.com/walkxcode/dashboard-icons), then to the first two letters of the service name. The slug is derived from the container's image name (`ghcr.io/foo/homebox:latest` → `homebox`).
+
+To override the icon on a per-container basis, set the `dockfe.icon` label:
+
+```yaml
+services:
+  myapp:
+    image: ghcr.io/example/some-fork
+    labels:
+      # Use a slug from selfh.st/icons or dashboard-icons:
+      dockfe.icon: adguard-home
+      # Or supply a full URL:
+      # dockfe.icon: https://example.com/logo.svg
+```
+
+A bare slug is resolved against the same two catalogs in the same order; a value starting with `http://`, `https://`, or `data:` is used as-is.
 
 ## Configuration
 
