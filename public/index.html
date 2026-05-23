@@ -403,20 +403,6 @@
       return a;
     }
 
-    function groupByProject(containers) {
-      const map = new Map();
-      for (const c of containers) {
-        const key = c.project || '(no project)';
-        if (!map.has(key)) map.set(key, []);
-        map.get(key).push(c);
-      }
-      return [...map.entries()].sort((a, b) => {
-        if (a[0] === '(no project)') return 1;
-        if (b[0] === '(no project)') return -1;
-        return a[0].localeCompare(b[0]);
-      });
-    }
-
     function applyFilter() {
       const q = filter.trim().toLowerCase();
       const filtered = q
@@ -441,22 +427,10 @@
         return;
       }
 
-      const groups = groupByProject(filtered);
-      for (const [project, items] of groups) {
-        const section = document.createElement('section');
-        section.className = 'section';
-        const label = document.createElement('div');
-        label.className = 'section-label';
-        label.innerHTML = `<span class="name"></span><span class="line"></span><span class="count"></span>`;
-        label.querySelector('.name').textContent = project;
-        label.querySelector('.count').textContent = pad(items.length, 2);
-        section.appendChild(label);
-        const grid = document.createElement('div');
-        grid.className = 'grid';
-        items.forEach(c => grid.appendChild(renderBookmark(c)));
-        section.appendChild(grid);
-        content.appendChild(section);
-      }
+      const grid = document.createElement('div');
+      grid.className = 'grid';
+      filtered.forEach(c => grid.appendChild(renderBookmark(c)));
+      content.appendChild(grid);
     }
 
     function renderError(msg) {
